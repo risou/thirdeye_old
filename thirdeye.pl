@@ -18,6 +18,7 @@ my $conf = pit_get(
 		delimiter		=> "delimiter",
 		imkayacid		=> "imkayacid",
 		imkayacpass		=> "imkayacpass",
+		user			=> "user",
 	}
 );
 
@@ -34,37 +35,59 @@ my $st = AnyEvent::Twitter::Stream->new(
 	method				=> "userstream",
 	on_tweet			=> sub {
 		my $tweet = shift;
-		my $user = $tweet->{user}{name};
-		my $name = encode_utf8($tweet->{user}{screen_name});
-		my $text = encode_utf8($tweet->{text} || '');
+		my $user = $tweet->{user}{screen_name};
+		my $name = encode_utf8($tweet->{user}{name});
 		return unless $user && $name && $text;
 		# followしてない人のmention,retweetをとれるか確認する
-		# mention
-		# DM
 		# retweet
-		
-		# 監視対象		
-		for my $target (@$targets) {
-			if ($target eq $user) {
+		if (my $retweet = $tweet->{retweeted_status}) {
+			if ($retweet->{user}{screen_name} eq $conf->{user}) {
+				my $text = encode_utf8($tweet->{text} || '');
 				# im.kayac
-				my $message = "[target] $user/$name: $text";
+				my $message = "[retweet] $user/$name: $text";
 				imkayac_post($conf->{imkayacid}, $message, $conf->{imkayacpass});
-				return;
 			}
 		}
-		# keyword check
-		for my $keyword (@$keywords) {
-			if ($text =~ /${keyword}/) {
-				# im.kayac
-				my $message = "[keyword] $user/$name: $text";
-				imkayac_post($conf->{imkayacid}, $message, $conf->{imkayacpass});
-				return;
+		else {
+			my $text = encode_utf8($tweet->{text} || '');
+			# mention
+			for my $mention (@{$tweet->{entities}{user_mentions}}) {
+				if ($mention->{screen_name} eq $conf->{user}) {
+					# im.kayac
+					my $message = "[mention] $user/$name: $text";
+					imkayac_post($conf->{imkayacid}, $message, $conf->{imkayacpass});
+					return;
+				}
+			}
+			# DM
+			# 監視対象		
+			for my $target (@$targets) {
+				if ($target eq $user) {
+					# im.kayac
+					my $message = "[target] $user/$name: $text";
+					imkayac_post($conf->{imkayacid}, $message, $conf->{imkayacpass});
+					return;
+				}
+			}
+			# keyword check
+			for my $keyword (@$keywords) {
+				if ($text =~ /${keyword}/) {
+					# im.kayac
+					my $message = "[keyword] $user/$name: $text";
+					imkayac_post($conf->{imkayacid}, $message, $conf->{imkayacpass});
+					return;
+				}
 			}
 		}
-
-		
 	},
+	on_event			=> sub {
 	# fav
+		my $tweet = shift;
+		my $event = $tweet->{event};
+		my $user = $tweet->{user}{screen_name};
+		my $name = encode_utf8($tweet->{user}{name});
+		my $text = $tweet->{target_object} ? encode_utf8($tweet->{target_object}{text}) : '';
+	},
 	on_error			=> sub {
 		my $error = shift;
 		warn "ERROR: $error";
