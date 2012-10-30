@@ -39,7 +39,7 @@ my $st = AnyEvent::Twitter::Stream->new(
 		my $tweet = shift;
 		my $user = $tweet->{user}{screen_name};
 		my $name = encode_utf8($tweet->{user}{name});
-		return unless $user && $name && $text;
+		return unless $user && $name;
 		# followしてない人のmention,retweetをとれるか確認する
 		# retweet
 		if (my $retweet = $tweet->{retweeted_status}) {
@@ -83,7 +83,7 @@ my $st = AnyEvent::Twitter::Stream->new(
 		}
 	},
 	on_event			=> sub {
-	# fav
+		# fav
 		my $tweet = shift;
 		my $event = $tweet->{event};
 		my $user = $tweet->{user}{screen_name};
@@ -98,7 +98,7 @@ my $st = AnyEvent::Twitter::Stream->new(
 	on_eof				=> sub {
 		$cv->send;
 	},
-};
+);
 
 $cv->recv;
 
