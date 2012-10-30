@@ -3,6 +3,8 @@ use strict;
 use warnings;
 
 use AnyEvent::Twitter::Stream;
+use AnyEvent::HTTP;
+use HTTP::Request::Common;
 use Config::Pit;
 use Encode;
 
